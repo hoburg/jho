@@ -348,7 +348,7 @@ def test():
         M.substitutions.update({p: 65})
     for t in M.varkeys["\\theta_{max}"]:
         M.substitutions.update({t: 65})
-    M.solve("mosek")
+    M.solve()
 
 if __name__ == "__main__":
     M = Mission(DF70=True)
