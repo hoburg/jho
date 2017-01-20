@@ -1,5 +1,6 @@
 import numpy as np
 from numpy import pi
+import gpkitmodels.aircraft.GP_submodels
 from gpkitmodels.aircraft.GP_submodels.breguet_endurance import BreguetEndurance
 from gpkitmodels.aircraft.GP_submodels.gas_engine import Engine
 from gpkitmodels.aircraft.GP_submodels.wing import Wing
