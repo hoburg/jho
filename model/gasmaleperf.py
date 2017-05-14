@@ -352,9 +352,9 @@ class Mission(Model):
 
 def test():
     M = Mission()
-    M.cost = 1/M["t_Mission, Loiter"]
-    subs = {"b_Mission, Aircraft, Wing": 24,
-            "l_Mission, Aircraft, Empennage, TailBoom": 7.0,
+    M.cost = 1/M["t_Mission/Loiter"]
+    subs = {"b_Mission/Aircraft/Wing": 24,
+            "l_Mission/Aircraft/Empennage/TailBoom": 7.0,
             "AR_v": 1.5, "AR": 24, "SM_{corr}": 0.5, "AR_h": 4, "k": 0.0,
             "(1-k/2)": 1, "d_0": 1}
     M.substitutions.update(subs)
@@ -366,12 +366,12 @@ def test():
 
 if __name__ == "__main__":
     M = Mission()
-    M.cost = 1/M["t_Mission, Loiter"]
-    subs = {"b_Mission, Aircraft, Wing": 24,
-            "l_Mission, Aircraft, Empennage, TailBoom": 7.0,
+    M.cost = 1/M["t_Mission/Loiter"]
+    subs = {"b_Mission/Aircraft/Wing": 24,
+            "l_Mission/Aircraft/Empennage/TailBoom": 7.0,
             "AR_v": 1.5, "c_{root}": 15./12, "SM_{corr}": 0.5, "AR_h": 4, "k": 0.0,
-            "(1-k/2)": 1, "d_0": 1, "R_Mission, Aircraft, Fuselage": 7./12,
-            "\\tau_Mission, Aircraft, Wing": 0.113661}
+            "(1-k/2)": 1, "d_0": 1, "R_Mission/Aircraft/Fuselage": 7./12,
+            "\\tau_Mission/Aircraft/Wing": 0.113661}
     M.substitutions.update(subs)
     for p in M.varkeys["P_{avn}"]:
         M.substitutions.update({p: 65})
@@ -382,10 +382,10 @@ if __name__ == "__main__":
         M.substitutions.update({vk: 2})
     sol = M.localsolve("mosek")
 
-    LD = sol("C_L_Mission, Loiter, FlightSegment, AircraftPerf, WingAero")/sol("C_D_Mission, Loiter, FlightSegment, AircraftPerf")
+    LD = sol("C_L_Mission/Loiter/FlightSegment/AircraftPerf/WingAero")/sol("C_D_Mission/Loiter/FlightSegment/AircraftPerf")
 
     # M = Mission(DF70=False)
-    # M.cost = 1/M["t_Mission, Loiter"]
+    # M.cost = 1/M["t_Mission/Loiter"]
     # lower = 50
     # upper = 1000
     # xmin_ = np.linspace(lower, upper, 100)
