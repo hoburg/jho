@@ -479,12 +479,16 @@ def max_payload(M):
     M.cost = 1./M["t_Mission/Loiter"]
 
 if __name__ == "__main__":
-    M = Mission()
-    sol = solve_jho(M)
-    vmax = max_speed(M)
-    max_payload(M)
-    optimum_speeds(M)
-    LD = sol("C_L_Mission/Loiter/FlightSegment/AircraftPerf/WingAero")/sol("C_D_Mission/Loiter/FlightSegment/AircraftPerf")
+    M = Mission(DF70=False)
+    # sol = solve_jho(M)
+    # vmax = max_speed(M)
+    # max_payload(M)
+    # optimum_speeds(M)
+    # LD = sol("C_L_Mission/Loiter/FlightSegment/AircraftPerf/WingAero")/sol("C_D_Mission/Loiter/FlightSegment/AircraftPerf")
+    M.cost = 1/M["t_Mission/Loiter"]
+    M.substitutions.update({"W_{pay}": 100})
+    sol = M.localsolve("mosek")
+
 
     # M = Mission(DF70=False)
     # M.cost = 1/M["t_Mission/Loiter"]
