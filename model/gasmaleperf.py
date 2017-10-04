@@ -144,12 +144,6 @@ class AircraftPerf(Model):
         areadragcomps = [static.fuselage, static.empennage.horizontaltail,
                          static.empennage.verticaltail,
                          static.empennage.tailboom, static.pylon]
-        # self.dynamicmodels = [self.wing, self.fuselage, self.engine,
-        #                       self.htail, self.vtail, self.tailboom]
-        # areadragmodel = [self.fuselage, self.htail, self.vtail, self.tailboom]
-        # areadragcomps = [static.fuselage, static.empennage.horizontaltail,
-        #                  static.empennage.verticaltail,
-        #                  static.empennage.tailboom]
 
         Wend = Variable("W_{end}", "lbf", "vector-end weight")
         Wstart = Variable("W_{start}", "lbf", "vector-begin weight")
@@ -349,38 +343,39 @@ class Mission(Model):
 
 def test():
     "test method run by external CI"
-    M = Mission()
-    _ = solve_jho(M)
+    model = Mission()
+    _ = solve_jho(model)
 
 
-def solve_jho(M):
+def solve_jho(model):
     """get solution for as-built Jungle Hawk Owl"""
-    M.cost = 1/M["t_Mission/Loiter"]
+    model.cost = 1/model["t_Mission/Loiter"]
     subs = {"b_Mission/Aircraft/Wing": 24,
             "l_Mission/Aircraft/Empennage/TailBoom": 7.0,
-            "AR_v": 1.5, "c_{root}": 15./12, "SM_{corr}": 0.5, "AR_h": 4, "k": 0.0,
-            "(1-k/2)": 1, "d_0": 1, "R_Mission/Aircraft/Fuselage": 7./12,
+            "AR_v": 1.5, "c_{root}": 15./12, "SM_{corr}": 0.5, "AR_h": 4,
+            "k": 0.0, "(1-k/2)": 1, "d_0": 1,
+            "R_Mission/Aircraft/Fuselage": 7./12,
             "\\tau_Mission/Aircraft/Wing": 0.113661, "k_{nose}": 2.4055,
             "k_{bulk}": 4.3601, "k_{body}": 3.6518,
             "W_Mission/Aircraft/Empennage": 4.096,
             "W_Mission/Aircraft/Wing": 14.979,
             "W_Mission/Aircraft/Fuselage": 9.615}
-    M.substitutions.update(subs)
-    for p in M.varkeys["P_{avn}"]:
-        M.substitutions.update({p: 65})
-    for t in M.varkeys["\\theta_{max}"]:
-        M.substitutions.update({t: 65})
-    M.substitutions.update({"w_{lim}": 1})
-    for vk in M.varkeys["w"]:
-        M.substitutions.update({vk: 2})
+    model.substitutions.update(subs)
+    for p in model.varkeys["P_{avn}"]:
+        model.substitutions.update({p: 65})
+    for t in model.varkeys["\\theta_{max}"]:
+        model.substitutions.update({t: 65})
+    model.substitutions.update({"w_{lim}": 1})
+    for vk in model.varkeys["w"]:
+        model.substitutions.update({vk: 2})
 
-    del M.substitutions["m_{fac}_Mission/Aircraft/Empennage"]
-    del M.substitutions["m_{fac}_Mission/Aircraft/Wing"]
-    del M.substitutions["m_{fac}_Mission/Aircraft/Fuselage"]
-    M.cost = (M.cost/M["m_{fac}_Mission/Aircraft/Empennage"]
-              / M["m_{fac}_Mission/Aircraft/Wing"]
-              / M["m_{fac}_Mission/Aircraft/Fuselage"])
-    sol = M.localsolve("mosek", verbosity=0)
+    del model.substitutions["m_{fac}_Mission/Aircraft/Empennage"]
+    del model.substitutions["m_{fac}_Mission/Aircraft/Wing"]
+    del model.substitutions["m_{fac}_Mission/Aircraft/Fuselage"]
+    model.cost = (model.cost/model["m_{fac}_Mission/Aircraft/Empennage"]
+                  / model["m_{fac}_Mission/Aircraft/Wing"]
+                  / model["m_{fac}_Mission/Aircraft/Fuselage"])
+    sol = model.localsolve("mosek", verbosity=0)
 
     subs = {"m_{fac}_Mission/Aircraft/Wing":
             sol("m_{fac}_Mission/Aircraft/Wing"),
@@ -388,12 +383,12 @@ def solve_jho(M):
             sol("m_{fac}_Mission/Aircraft/Empennage"),
             "m_{fac}_Mission/Aircraft/Fuselage":
             sol("m_{fac}_Mission/Aircraft/Fuselage")}
-    M.substitutions.update(subs)
+    model.substitutions.update(subs)
 
-    del M.substitutions["W_Mission/Aircraft/Empennage"]
-    del M.substitutions["W_Mission/Aircraft/Wing"]
-    del M.substitutions["W_Mission/Aircraft/Fuselage"]
-    M.cost = 1/M["t_Mission/Loiter"]
+    del model.substitutions["W_Mission/Aircraft/Empennage"]
+    del model.substitutions["W_Mission/Aircraft/Wing"]
+    del model.substitutions["W_Mission/Aircraft/Fuselage"]
+    model.cost = 1/model["t_Mission/Loiter"]
 
     cmac = sol("c_{MAC}").magnitude
     print "mean aerodynamic chord [ft] = %.4f" % cmac
@@ -404,7 +399,8 @@ def solve_jho(M):
     Vytop = sol("V_Mission/Climb/FlightSegment/FlightState")[-1]
     print "speed at top of climb [m/s] = %.3f" % Vytop.magnitude
 
-    vloiter = np.average(sol("V_Mission/Loiter/FlightSegment/FlightState").magnitude)
+    vloiter = np.average(
+        sol("V_Mission/Loiter/FlightSegment/FlightState").magnitude)
     print "design loiter speed [m/s] = %.3f" % vloiter
 
     rho = sol("\\rho_{sl}").items()[0][1]
@@ -419,24 +415,26 @@ def solve_jho(M):
 
     return sol
 
-def max_speed(M):
-    oldcost = M.cost
-    M.cost = 1./np.prod(M["V_Mission/Loiter/FlightSegment/FlightState"])
-    M.substitutions.update({"t_Mission/Loiter": 0.02})
-    sol = M.localsolve("mosek")
+def max_speed(model):
+    " find maximum speed at altitude "
+    oldcost = model.cost
+    model.cost = 1./np.prod(model["V_Mission/Loiter/FlightSegment/FlightState"])
+    model.substitutions.update({"t_Mission/Loiter": 0.02})
+    sol = model.localsolve("mosek")
     vmax = max(sol("V_Mission/Loiter/FlightSegment/FlightState"))
     print "Max Speed [m/s]: %.2f" % vmax.magnitude
-    M.cost = oldcost
+    model.cost = oldcost
     return vmax
 
-def optimum_speeds(M):
-    for v in M.varkeys["m_{fac}"]:
+def optimum_speeds(model):
+    " find optimum speeds "
+    for v in model.varkeys["m_{fac}"]:
         mods = v.models
         if "Climb" in mods or "Loiter" in mods or "Cruise" in mods:
             if "FlightState" in mods:
-                M.substitutions.update({v: 0.001})
+                model.substitutions.update({v: 0.001})
 
-    sol = M.localsolve("mosek", verbosity=0)
+    sol = model.localsolve("mosek", verbosity=0)
 
     vmins = sol("V_Mission/Loiter/FlightSegment/FlightState")[0].magnitude
     print ("optimum loiter speed for min power, "
@@ -453,41 +451,37 @@ def optimum_speeds(M):
     vcrout = sol(vstr).items()[1][1].magnitude
     print "optimum cruise speed, outbound [m/s] = %.3f" % vcrout
 
-    for v in M.varkeys["m_{fac}"]:
+    for v in model.varkeys["m_{fac}"]:
         mods = v.models
         if "Climb" in mods or "Loiter" in mods or "Cruise" in mods:
             if "FlightState" in mods:
-                M.substitutions.update({v: 1})
+                model.substitutions.update({v: 1})
 
-def max_payload(M):
-    oldcost = M.cost
-    M.cost = 1./M["W_{pay}"]
-    oldsubw = M.substitutions["W_{pay}"]
-    M.substitutions.update({"t_Mission/Loiter": 5.5})
-    oldsubhdot = M.substitutions["\\dot{h}_{min}"]
-    M.substitutions.update({"\\dot{h}_{min}": 10})
-    # sp = M.sp()
-    del M.substitutions["W_{pay}"]
-    sol = M.localsolve("mosek")
+def max_payload(model):
+    " solve for maximum allowable payload "
+    oldcost = model.cost
+    model.cost = 1./model["W_{pay}"]
+    oldsubw = model.substitutions["W_{pay}"]
+    model.substitutions.update({"t_Mission/Loiter": 5.5})
+    oldsubhdot = model.substitutions["\\dot{h}_{min}"]
+    model.substitutions.update({"\\dot{h}_{min}": 10})
+    del model.substitutions["W_{pay}"]
+    sol = model.localsolve("mosek")
     wtot = sol("W_{pay}").magnitude
     wpay = (wtot + 14.0/3.0)/(7.0/5.0)
     mtow = sol("MTOW").magnitude
     print "Max payload weight [lbf] = %.3f" % wpay
     print "Max take off weight [lbf] = %.3f" % mtow
-    M.substitutions.update({"W_{pay}": oldsubw})
-    M.substitutions.update({"\\dot{h}_{min}": oldsubhdot})
-    M.cost = 1./M["t_Mission/Loiter"]
+    model.substitutions.update({"W_{pay}": oldsubw})
+    model.substitutions.update({"\\dot{h}_{min}": oldsubhdot})
+    model.cost = oldcost
 
 if __name__ == "__main__":
     M = Mission(DF70=False)
-    # sol = solve_jho(M)
-    # vmax = max_speed(M)
-    # max_payload(M)
-    # optimum_speeds(M)
-    # LD = sol("C_L_Mission/Loiter/FlightSegment/AircraftPerf/WingAero")/sol("C_D_Mission/Loiter/FlightSegment/AircraftPerf")
-    M.cost = 1/M["t_Mission/Loiter"]
-    M.substitutions.update({"W_{pay}": 100})
-    sol = M.localsolve("mosek")
+    Sol = solve_jho(M)
+    _ = max_speed(M)
+    max_payload(M)
+    optimum_speeds(M)
 
 
     # M = Mission(DF70=False)
