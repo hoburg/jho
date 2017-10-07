@@ -1,0 +1,116 @@
+\documentclass[10pt, a4paper]{article}
+\usepackage{latexsym}
+\usepackage{amssymb,amsmath}
+\usepackage[pdftex]{graphicx}
+\usepackage{float}
+\newcommand{\dbar}[1]{\Bar{\Bar{#1}}}
+
+\usepackage{hyperref}
+\usepackage{caption}
+\captionsetup[table]{position=bottom} 
+
+\topmargin = 0.1in \textwidth=5.7in \textheight=8.6in
+
+\oddsidemargin = 0.1in \evensidemargin = 0.1in
+
+% headers
+\usepackage{fancyhdr}
+\pagestyle{fancy}
+\chead{} 
+\rhead{\thepage} 
+% footer
+\lfoot{\small\scshape } 
+\cfoot{} 
+%%%% insert your name here %%%%
+\rfoot{\footnotesize Michael Burton} 
+\renewcommand{\headrulewidth}{.3pt} 
+\renewcommand{\footrulewidth}{.3pt}
+\setlength\voffset{-0.25in}
+\setlength\textheight{648pt}
+
+\begin{document}
+
+\title{Scaling the JHO for Larger Payloads}
+\author{Michael Burton}
+\maketitle
+
+This paper shows sizing study of a scaled version of the Jungle Hawk Owl (JHO) that would accomodate a 100 lbs payload drawing 650 W.  
+The same optimization techniques used to size and generate performance characteristics of the JHO were used to do this study. 
+
+\section*{Sizing Study}
+
+Table~\ref{t:keyvals} shows the estimated sizing for a scaled version of the JHO to hold a 100 lbs payload drawing 650 W for 5 days.
+
+\begin{table}[h!]
+    \centering
+    \begin{tabular}{lc}
+        Variable         & Value         \\ \hline \hline
+        MTOW             & 517 {[}lbs{]} \\ 
+        Empty weight     & 262 {[}lbs{]} \\ 
+        Span             & 44.5 {[}ft{]} \\ 
+        Aircraft length  & 20 {[}ft{]}   \\ 
+        Aspect ratio     & 26.6          \\ 
+        Root chord       & 2.22 {[}ft{]} \\ 
+        Engine weight    & 18 {[}lbs{]}  \\ 
+        Max engine power & 16 {[}hp{]}   \\ 
+        Max speed        & 147 {[}kts{]} \\ 
+        Loiter speed     & 49 {[}kts{]}  \\ 
+    \end{tabular}
+    \caption{Key Sizing Parameters}
+    \label{t:keyvals}
+\end{table}
+
+Figure~\ref{f:endurancetrade} shows how the aircraft size varies per the endurance requirement. 
+
+\begin{figure}[H]
+    \begin{center}
+        \includegraphics[width=0.7\textwidth]{endurancetrade.pdf}
+        \caption{\textbf{Trade of max takeoff weight vs endurance for scaled JHO carrying 100 lbs payload drawing 650 W.}}
+        \label{f:endurancetrade}
+    \end{center}
+\end{figure}
+
+\section*{Key Assumptions}
+
+\begin{enumerate}
+
+    \item Payload weight: 100 lbs
+    \item Payload power draw: 650 W
+    \item Mission profile:
+        \begin{enumerate}
+            \item Climb to 15,000 ft
+            \item Cruise 200 nmi to station
+            \item Loiter for 5 days at 15,000 ft
+            \item Cruise 200 nmi to base
+            \item Descend 
+            \end{enumerate}
+    \item 95th percentile world wide winds at 15,000 ft: 49 kts
+    \item Configuration: 
+        \begin{enumerate}
+            \item Cylindrical fuselage with ellispodal and o-jive fairings
+            \item Constant tapered wing
+            \item Conventional tail
+            \item Pusher engine placement
+            \end{enumerate}
+    \item ``Rubber engine''; size scales with required power
+    \item Performance:
+        \begin{enumerate}
+            \item Propellor efficiency: 70\%
+            \item Minimum BSFC: 0.316 kg/kW-hr
+            \item Span efficiency: 90\%
+            \end{enumerate}
+    \item Margins:
+        \begin{enumerate}
+            \item Drag: 5\%
+            \item Wing weight: 20\%
+            \item Empennage weight: 10\%
+            \item Fuselage weight: 50\%
+            \end{enumerate}
+
+\end{enumerate}
+
+\section*{References}
+
+For more information about Geometric Programming optimization see: \url{hoburg.mit.edu}
+
+\end{document}

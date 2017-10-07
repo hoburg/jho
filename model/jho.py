@@ -149,7 +149,7 @@ class AircraftPerf(Model):
         Wstart = Variable("W_{start}", "lbf", "vector-begin weight")
         CD = Variable("C_D", "-", "drag coefficient")
         CDA = Variable("CDA", "-", "area drag coefficient")
-        mfac = Variable("m_{fac}", 2.1, "-", "drag margin factor")
+        mfac = Variable("m_{fac}", 1.15, "-", "drag margin factor")
 
         dvars = []
         for dc, dm in zip(areadragcomps, areadragmodel):
@@ -158,8 +158,8 @@ class AircraftPerf(Model):
             elif "C_f" in dm.varkeys:
                 dvars.append(dm["C_f"]*dc["S"]/static.wing["S"])
 
-        constraints = [CDA/mfac >= sum(dvars),
-                       CD >= CDA + self.wing["C_d"]]
+        constraints = [CDA >= sum(dvars),
+                       CD/mfac >= CDA + self.wing["C_d"]]
 
         return self.dynamicmodels, constraints
 

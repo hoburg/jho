@@ -46,11 +46,32 @@ def jho_subs(model):
 
 def perf_solve(model):
     "solve "
+    del model.substitutions["t_Mission/Loiter"]
     model.cost = 1/model["t_Mission/Loiter"]
     sol = model.localsolve("mosek", verbosity=0)
 
+    mtow = sol("MTOW").magnitude
+    print "MTOW [lbs] = %.2f" % mtow
+
+    wzfw = sol("W_{zfw}").magnitude
+    print "Zero fuel weight [lbs] = %.2f" % wzfw
+
+    b = sol("b_Mission/Aircraft/Wing").magnitude
+    print "Wing span [ft] = %.2f" % b
+
+    lfuse = sol("l_Mission/Aircraft/Fuselage")
+    ltail = sol("l_Mission/Aircraft/Empennage/TailBoom")
+    ljho = (lfuse + ltail).to("ft").magnitude
+    print "Aicraft length [ft] = %.2f" % ljho
+
+    AR = sol("AR")
+    print "Aspect ratio = %.2f" % AR
+
     cmac = sol("c_{MAC}").magnitude
     print "mean aerodynamic chord [ft] = %.4f" % cmac
+
+    croot = sol("c_{root}").magnitude
+    print "root chord [ft] = %.3f" % croot
 
     Vy = sol("V_Mission/Climb/FlightSegment/FlightState")[0]
     print "speed for best rate of climb [m/s]: Vy = %.3f" % Vy.magnitude
@@ -80,8 +101,10 @@ def max_speed(model):
     model.cost = 1./np.prod(model["V_Mission/Loiter/FlightSegment/FlightState"])
     model.substitutions.update({"t_Mission/Loiter": 0.02})
     sol = model.localsolve("mosek")
-    vmax = max(sol("V_Mission/Loiter/FlightSegment/FlightState"))
-    print "Max Speed [m/s]: %.2f" % vmax.magnitude
+    vmax = max(sol("V_Mission/Loiter/FlightSegment/FlightState")).magnitude
+    rho = sol("\\rho_Mission/Loiter/FlightSegment/FlightState")[0].magnitude
+    rhosl = 1.225
+    print "Max Speed [m/s]: %.2f" % (vmax*rhosl/rho)
     model.cost = oldcost
     return vmax
 
@@ -93,6 +116,7 @@ def optimum_speeds(model):
             if "FlightState" in mods:
                 model.substitutions.update({v: 0.001})
 
+    model.cost = 1/model["t_Mission/Loiter"]
     sol = model.localsolve("mosek", verbosity=0)
 
     vmins = sol("V_Mission/Loiter/FlightSegment/FlightState")[0].magnitude
@@ -138,7 +162,8 @@ def max_payload(model):
 if __name__ == "__main__":
     M = Mission(DF70=True)
     jho_subs(M)
+    M.substitutions["t_Mission/Loiter"] = 5
     Sol = perf_solve(M)
+    optimum_speeds(M)
     _ = max_speed(M)
     max_payload(M)
-    optimum_speeds(M)
