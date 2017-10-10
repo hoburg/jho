@@ -47,15 +47,19 @@ if __name__ == "__main__":
 
     M = Mission(DF70=False)
     highpay_subs(M)
-    M.substitutions.update({"t_Mission/Loiter":
-                            ("sweep", np.linspace(2, 7, 20))})
-    sol = M.localsolve("mosek")
-
     fig, ax = plt.subplots()
-    ax.plot(sol("t_Mission/Loiter"), sol("MTOW"))
-    ax.set_xlabel("Loiter Time [days]")
+    style = [":", "-.", "--", "-", ":"]
+    for t, st in zip([3, 4, 5, 6, 7], style):
+        M.substitutions.update({"t_Mission/Loiter": t})
+        M.substitutions.update({"W_{pay}": ("sweep", np.linspace(50, 300, 5))})
+        sol = M.localsolve("mosek", skipsweepfailures=True)
+        ax.plot(sol("W_{pay}"), sol("MTOW"), linestyle=st, color="k", linewidth=1.2, label="Endurance: %d [days]" % t)
+
+    ax.set_xlabel("Payload Weight [lbf]")
     ax.set_ylabel("Max Takeoff Weight [lbf]")
-    ax.plot([5, 5], [0, mtow5], "--r")
-    ax.plot([2, 5], [mtow5, mtow5], "--r")
+    ax.legend(loc=2)
+    # ax.plot([5, 5], [0, mtow5], "--r")
+    # ax.plot([2, 5], [mtow5, mtow5], "--r")
+    ax.set_ylim([0, 2000])
     ax.grid()
     fig.savefig("endurancetrade.pdf")

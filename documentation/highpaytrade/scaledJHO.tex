@@ -34,48 +34,56 @@
 \author{Michael Burton}
 \maketitle
 
-This paper shows sizing study of a scaled version of the Jungle Hawk Owl (JHO) that would accomodate a 100 lbs payload drawing 650 W.  
-The same optimization techniques used to size and generate performance characteristics of the JHO were used to do this study. 
+This study shows a scaled version of the Jungle Hawk Owl (JHO) that would accomodate a 100 lbs payload drawing 650 W.  
+The same GPkit optimization models and basic assumptions used to size and optimize the JHO were used to do this study. 
 
-\section*{Sizing Study}
+An initial sizing analysis shows that a scaled verison of the JHO will be roughly twice as big and will have a max takeoff weight of 3 times the current aircraft max takeoff weight.  Figure~\ref{f:drawing} shows a scaled comparision of the current JHO and the resized verison. Table~\ref{t:keyvals} lists the estimated values of the scaled version.  For reference, the current aircraft's parameters are also listed.  Because a ``rubber'' engine was assumed in this study, availability of an engine and alternator to the specification listed in Table~\ref{t:keyvals} needs to be confirmed. 
 
-Table~\ref{t:keyvals} shows the estimated sizing for a scaled version of the JHO to hold a 100 lbs payload drawing 650 W for 5 days.
+\begin{figure}[H]
+    \begin{center}
+        \includegraphics[width=1.0\textwidth]{drawing.jpg}
+        \caption{\textbf{Comparison of JHO and scaled version copable of supporting larger payloads.}}
+        \label{f:drawing}
+    \end{center}
+\end{figure}
 
-\begin{table}[h!]
+\begin{table}[H]
     \centering
-    \begin{tabular}{lc}
-        Variable         & Value         \\ \hline \hline
-        MTOW             & 517 {[}lbs{]} \\ 
-        Empty weight     & 262 {[}lbs{]} \\ 
-        Span             & 44.5 {[}ft{]} \\ 
-        Aircraft length  & 20 {[}ft{]}   \\ 
-        Aspect ratio     & 26.6          \\ 
-        Root chord       & 2.22 {[}ft{]} \\ 
-        Engine weight    & 18 {[}lbs{]}  \\ 
-        Max engine power & 16 {[}hp{]}   \\ 
-        Max speed        & 147 {[}kts{]} \\ 
-        Loiter speed     & 49 {[}kts{]}  \\ 
+    \begin{tabular}{lcc}
+        Variable          & Scaled JHO      & JHO          \\ \hline \hline
+        Payload Weight    & 100 [lbs]       & 10 [lbs]     \\
+        Payload Power     & 650 [W]         & 100 [W]      \\
+        MTOW              & 517 {[}lbs{]}   & 150 [lbs]    \\ 
+        Empty weight      & 262 {[}lbs{]}   & 53.6 [lbs]   \\ 
+        Span              & 44.5 {[}ft{]}   & 24 [ft]      \\ 
+        Aircraft length   & 20 {[}ft{]}     & 12.9 [ft]    \\ 
+        Aspect ratio      & 26.6            & 25.6         \\ 
+        Root chord        & 2.22 {[}ft{]}   & 1.25 [ft]    \\ 
+        Engine weight     & 18 {[}lbs{]}    & 7 [lbs]      \\ 
+        Max engine power  & 16 {[}hp{]}     & 5 [hp]       \\ 
+        Max speed         & 147 {[}kts{]}   & 106 [kts]    \\ 
+        Loiter speed      & 49 {[}kts{]}    & 49 [kts]     \\ 
     \end{tabular}
     \caption{Key Sizing Parameters}
     \label{t:keyvals}
 \end{table}
 
-Figure~\ref{f:endurancetrade} shows how the aircraft size varies per the endurance requirement. 
+Because the aicraft size is sensitive to payload weight and endurance, understanding how those parameters trade with aircraft weight is helpful to understanding the design space.  
+Figure~\ref{f:endurancetrade} shows countour lines of endurance requirements plotted against payload weight vs max take off weight.  
+Each point on Figure~\ref{f:endurancetrade} is a different aircraft, optimized for that particular payload weight and endurance requirement. 
 
 \begin{figure}[H]
     \begin{center}
         \includegraphics[width=0.7\textwidth]{endurancetrade.pdf}
-        \caption{\textbf{Trade of max takeoff weight vs endurance for scaled JHO carrying 100 lbs payload drawing 650 W.}}
+        \caption{\textbf{Trade of max takeoff weight vs payload weight.  Contours are endurance requirements.}}
         \label{f:endurancetrade}
     \end{center}
 \end{figure}
 
-\section*{Key Assumptions}
+\subsubsection*{Basic Assumptions}
 
 \begin{enumerate}
 
-    \item Payload weight: 100 lbs
-    \item Payload power draw: 650 W
     \item Mission profile:
         \begin{enumerate}
             \item Climb to 15,000 ft
@@ -85,32 +93,10 @@ Figure~\ref{f:endurancetrade} shows how the aircraft size varies per the enduran
             \item Descend 
             \end{enumerate}
     \item 95th percentile world wide winds at 15,000 ft: 49 kts
-    \item Configuration: 
-        \begin{enumerate}
-            \item Cylindrical fuselage with ellispodal and o-jive fairings
-            \item Constant tapered wing
-            \item Conventional tail
-            \item Pusher engine placement
-            \end{enumerate}
-    \item ``Rubber engine''; size scales with required power
-    \item Performance:
-        \begin{enumerate}
-            \item Propellor efficiency: 70\%
-            \item Minimum BSFC: 0.316 kg/kW-hr
-            \item Span efficiency: 90\%
-            \end{enumerate}
-    \item Margins:
-        \begin{enumerate}
-            \item Drag: 5\%
-            \item Wing weight: 20\%
-            \item Empennage weight: 10\%
-            \item Fuselage weight: 50\%
-            \end{enumerate}
+    \item ``Rubber engine''; engine weight scales with required power
 
 \end{enumerate}
 
-\section*{References}
-
-For more information about Geometric Programming optimization see: \url{hoburg.mit.edu}
+For more information about Geometric Programming optimization or GPkit see: \url{hoburg.mit.edu}
 
 \end{document}
