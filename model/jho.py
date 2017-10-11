@@ -344,8 +344,8 @@ class Mission(Model):
 def test():
     "test method run by external CI"
     model = Mission()
-    model.cost = 1/M["t_Mission/Loiter"]
-    sol = M.localsolve("mosek")
+    model.cost = 1/model["t_Mission/Loiter"]
+    sol = model.localsolve("mosek")
 
 if __name__ == "__main__":
     M = Mission(DF70=True)
