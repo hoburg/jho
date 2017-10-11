@@ -159,6 +159,15 @@ def max_payload(model):
     model.substitutions.update({"\\dot{h}_{min}": oldsubhdot})
     model.cost = oldcost
 
+def test():
+    M = Mission(DF70=True)
+    jho_subs(M)
+    M.substitutions["t_Mission/Loiter"] = 5
+    Sol = perf_solve(M)
+    optimum_speeds(M)
+    _ = max_speed(M)
+    max_payload(M)
+
 if __name__ == "__main__":
     M = Mission(DF70=True)
     jho_subs(M)
