@@ -47,24 +47,25 @@ class Aircraft(Model):
 
         constraints = [
             Wzfw >= sum(summing_vars(components, "W")) + Wpay + Wavn,
-            self.empennage.horizontaltail["V_h"] <= (
-                self.empennage.horizontaltail["S"]
-                * self.empennage.horizontaltail["l_h"]/self.wing["S"]**2
+            self.empennage.htail["V_h"] <= (
+                self.empennage.htail["S"]
+                * self.empennage.htail["l_h"]/self.wing["S"]**2
                 * self.wing["b"]),
-            self.empennage.verticaltail["V_v"] <= (
-                self.empennage.verticaltail["S"]
-                * self.empennage.verticaltail["l_v"]/self.wing["S"]
+            self.empennage.vtail["V_v"] == (
+                self.empennage.vtail["S"]
+                * self.empennage.vtail["l_v"]/self.wing["S"]
                 / self.wing["b"]),
             self.wing["C_{L_{max}}"]/self.wing["m_w"] <= (
-                self.empennage.horizontaltail["C_{L_{max}}"]
-                / self.empennage.horizontaltail["m_h"]),
+                self.empennage.htail["C_{L_{max}}"]
+                / self.empennage.htail["m_h"]),
             # enforce antenna sticking on the tail
-            self.empennage.verticaltail["c_{t_v}"] >= wantenna,
-            self.empennage.verticaltail["b"] >= lantenna,
+            self.empennage.vtail["c_{root}"]*self.empennage.vtail["\\lambda"] >= (
+                wantenna),
+            self.empennage.vtail["b"] >= lantenna,
             # enforce a cruciform with the htail infront of vertical tail
             self.empennage.tailboom["l"] >= (
-                self.empennage.horizontaltail["l_h"]
-                + self.empennage.horizontaltail["c_{r_h}"]),
+                self.empennage.htail["l_h"]
+                + self.empennage.htail["c_{root}"]),
             4./6*pi*self.fuselage["k_{nose}"]*self.fuselage["R"]**3 >= Volpay,
             self.fuselage["\\mathcal{V}_{body}"] >= (
                 self.fuselage.fueltank["\\mathcal{V}"] + Volavn),
@@ -115,11 +116,11 @@ class AircraftLoading(Model):
     "aircraft loading model"
     def setup(self, aircraft, Wcent):
 
-        loading = [aircraft.wing.loading(Wcent)]
+        loading = [aircraft.wing.loading(aircraft.wing, Wcent)]
         loading.append(aircraft.fuselage.loading(Wcent))
 
         tbstate = TailBoomState()
-        loading.append(TailBoomFlexibility(aircraft.empennage.horizontaltail,
+        loading.append(TailBoomFlexibility(aircraft.empennage.htail,
                                            aircraft.empennage.tailboom,
                                            aircraft.wing, tbstate))
 
@@ -129,11 +130,13 @@ class AircraftPerf(Model):
     "performance model for aircraft"
     def setup(self, static, state, **kwargs):
 
-        self.wing = static.wing.flight_model(state)
+        self.wing = static.wing.flight_model(static.wing, state)
         self.fuselage = static.fuselage.flight_model(state)
         self.engine = static.engine.flight_model(state)
-        self.htail = static.empennage.horizontaltail.flight_model(state)
-        self.vtail = static.empennage.verticaltail.flight_model(state)
+        self.htail = static.empennage.htail.flight_model(static.empennage.htail,
+                                                         state)
+        self.vtail = static.empennage.vtail.flight_model(static.empennage.vtail,
+                                                         state)
         self.tailboom = static.empennage.tailboom.flight_model(state)
         self.pylon = static.pylon.flight_model(state)
 
@@ -141,8 +144,8 @@ class AircraftPerf(Model):
                               self.htail, self.vtail, self.tailboom, self.pylon]
         areadragmodel = [self.fuselage, self.htail, self.vtail, self.tailboom,
                          self.pylon]
-        areadragcomps = [static.fuselage, static.empennage.horizontaltail,
-                         static.empennage.verticaltail,
+        areadragcomps = [static.fuselage, static.empennage.htail,
+                         static.empennage.vtail,
                          static.empennage.tailboom, static.pylon]
 
         Wend = Variable("W_{end}", "lbf", "vector-end weight")

@@ -5,12 +5,16 @@ from jho import Mission
 def jho_subs(model):
     """get solution for as-built Jungle Hawk Owl"""
     model.cost = 1/model["t_Mission/Loiter"]
-    subs = {"b_Mission/Aircraft/Wing": 24,
+    subs = {"b_Mission/Aircraft/Wing/Planform": 24,
             "l_Mission/Aircraft/Empennage/TailBoom": 7.0,
-            "AR_v": 1.5, "c_{root}": 15./12, "SM_{corr}": 0.5, "AR_h": 4,
+            "AR_Mission/Aircraft/Empennage/VerticalTail/Planform.2": 1.5,
+            "c_{root}_Mission/Aircraft/Wing/Planform": 15./12,
+            "SM_{corr}": 0.5,
+            "AR_Mission/Aircraft/Empennage/HorizontalTail/Planform.1": 4,
             "k": 0.0, "(1-k/2)": 1, "d_0": 1,
             "R_Mission/Aircraft/Fuselage": 7./12,
-            "\\tau_Mission/Aircraft/Wing": 0.113661, "k_{nose}": 2.4055,
+            "\\tau_Mission/Aircraft/Wing/Planform": 0.113661,
+            "k_{nose}": 2.4055,
             "k_{bulk}": 4.3601, "k_{body}": 3.6518,
             "W_Mission/Aircraft/Empennage": 4.096,
             "W_Mission/Aircraft/Wing": 14.979,
@@ -56,7 +60,7 @@ def perf_solve(model):
     wzfw = sol("W_{zfw}").magnitude
     print "Zero fuel weight [lbs] = %.2f" % wzfw
 
-    b = sol("b_Mission/Aircraft/Wing").magnitude
+    b = sol("b_Mission/Aircraft/Wing/Planform").magnitude
     print "Wing span [ft] = %.2f" % b
 
     lfuse = sol("l_Mission/Aircraft/Fuselage")
@@ -64,13 +68,13 @@ def perf_solve(model):
     ljho = (lfuse + ltail).to("ft").magnitude
     print "Aicraft length [ft] = %.2f" % ljho
 
-    AR = sol("AR")
+    AR = sol("AR_Mission/Aircraft/Wing/Planform")
     print "Aspect ratio = %.2f" % AR
 
-    cmac = sol("c_{MAC}").magnitude
+    cmac = sol("c_{MAC}_Mission/Aircraft/Wing/Planform").magnitude
     print "mean aerodynamic chord [ft] = %.4f" % cmac
 
-    croot = sol("c_{root}").magnitude
+    croot = sol("c_{root}_Mission/Aircraft/Wing/Planform").magnitude
     print "root chord [ft] = %.3f" % croot
 
     Vy = sol("V_Mission/Climb/FlightSegment/FlightState")[0]
@@ -84,7 +88,7 @@ def perf_solve(model):
     print "design loiter speed [m/s] = %.3f" % vloiter
 
     rho = sol("\\rho_{sl}").items()[0][1]
-    S = sol("S_Mission/Aircraft/Wing")
+    S = sol("S_Mission/Aircraft/Wing/Planform")
     w55 = sol("W_{zfw}")*(sol("W_{zfw}").magnitude + 5)/sol("W_{zfw}").magnitude
 
     Vrot55 = ((2*w55/rho/S/1.39)**0.5).to("m/s")*1.5
