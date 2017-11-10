@@ -116,7 +116,6 @@ class AircraftLoading(Model):
     "aircraft loading model"
     def setup(self, aircraft, Wcent):
 
-        # loading = [aircraft.wing.loading(aircraft.wing, Wcent)]
         loading = []
         loading.append(aircraft.fuselage.loading(Wcent))
 
