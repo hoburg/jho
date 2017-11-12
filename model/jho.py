@@ -315,11 +315,13 @@ class Mission(Model):
         mtow = Variable("MTOW", "lbf", "max-take off weight")
         Wcent = Variable("W_{cent}", "lbf", "center aircraft weight")
         Wfueltot = Variable("W_{fuel-tot}", "lbf", "total aircraft fuel weight")
-        LS = Variable("(W/S)", "lbf/ft**2", "wing loading")
 
         JHO = Aircraft(Wfueltot, df70=DF70)
         loading = JHO.loading(Wcent)
         wingl = JHO.wing.spar.loading(JHO.wing)
+
+        LS = Variable("(W/S)", "lbf/ft**2", "wing loading",
+                      evalfn=lambda v: v[mtow]/v[JHO.wing.planform["S"]])
 
         climb1 = Climb(10, JHO, alt=np.linspace(0, 15000, 11)[1:], etap=0.508, wind=wind)
         cruise1 = Cruise(1, JHO, etap=0.684, R=180, wind=wind)
@@ -328,11 +330,10 @@ class Mission(Model):
         mission = [climb1, cruise1, loiter1, cruise2]
 
         constraints = [
-            mtow >= climb1["W_{start}"][0],
+            mtow == climb1["W_{start}"][0],
             Wfueltot >= sum(fs["W_{fuel-fs}"] for fs in mission),
             mission[-1]["W_{end}"][-1] >= JHO["W_{zfw}"],
             Wcent >= Wfueltot + sum(summing_vars(JHO.smeared_loads, "W")),
-            LS == mtow/JHO.wing["S"],
             loiter1["P_{total}"] >= (loiter1["P_{shaft}"] + (
                 loiter1["P_{avn}"] + JHO["P_{pay}"])
                                      / loiter1["\\eta_{alternator}"]),
@@ -349,11 +350,13 @@ class Mission(Model):
 def test():
     "test method run by external CI"
     model = Mission()
+    model.substitutions["V_v"] = 0.04
     model.cost = 1/model["t_Mission/Loiter"]
-    sol = model.localsolve("mosek")
+    model.localsolve("mosek")
 
 if __name__ == "__main__":
     M = Mission(DF70=True)
+    M.substitutions["V_v"] = 0.04
     M.cost = 1/M["t_Mission/Loiter"]
     sol = M.localsolve("mosek")
 
