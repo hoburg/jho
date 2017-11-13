@@ -9,6 +9,7 @@ def jho_subs(model):
     model.cost = 1/model["t_Mission/Loiter"]
     subs = {"b_Mission/Aircraft/Wing/Planform": 24,
             "l_Mission/Aircraft/Empennage/TailBoom": 7.0,
+            "l_v_Mission/Aircraft/Empennage/VerticalTail": 7.0,
             "AR_Mission/Aircraft/Empennage/VerticalTail/Planform.2": 1.5,
             "c_{root}_Mission/Aircraft/Wing/Planform": 15./12,
             "SM_{corr}": 0.5,
