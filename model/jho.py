@@ -353,7 +353,7 @@ class Mission(Model):
 def test():
     "test method run by external CI"
     model = Mission()
-    model.substitutions["V_v"] = 0.04
+    model.substitutions[M.JHO.emp.vtail.Vv] = 0.04
     model.cost = 1/model["t_Mission/Loiter"]
     model.localsolve("mosek")
 
