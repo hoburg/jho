@@ -7,48 +7,47 @@ plt.rcParams.update({'font.size':15})
 def jho_subs(model):
     """get solution for as-built Jungle Hawk Owl"""
     model.cost = 1/model["t_Mission/Loiter"]
-    subs = {"b_Mission/Aircraft/Wing/Planform": 24,
-            "l_Mission/Aircraft/Empennage/TailBoom": 7.0,
-            "l_v_Mission/Aircraft/Empennage/VerticalTail": 7.0,
-            "AR_Mission/Aircraft/Empennage/VerticalTail/Planform.2": 1.5,
-            "c_{root}_Mission/Aircraft/Wing/Planform": 15./12,
+    subs = {model.JHO.wing.planform.b: 24,
+            model.JHO.emp.tailboom.l: 7.0,
+            model.JHO.emp.vtail.lv: 7.0,
+            model.JHO.emp.vtail.planform.AR: 15,
+            model.JHO.wing.planform.croot: 15./12,
             "SM_{corr}": 0.5,
-            "AR_Mission/Aircraft/Empennage/HorizontalTail/Planform.1": 4,
-            "k": 0.0, "(1-k/2)": 1, "d_0": 1,
+            model.JHO.emp.htail.planform.AR: 4,
+            model.JHO.emp.tailboom.k: 0.0,
+            model.JHO.emp.tailboom.d0: 1,
             "R_Mission/Aircraft/Fuselage": 7./12,
-            "\\tau_Mission/Aircraft/Wing/Planform": 0.113661,
+            model.JHO.wing.planform.tau: 0.113661,
             "k_{nose}": 2.4055,
             "k_{bulk}": 4.3601, "k_{body}": 3.6518,
-            "W_Mission/Aircraft/Empennage": 4.096,
-            "W_Mission/Aircraft/Wing": 14.979,
+            model.JHO.emp.W: 4.096,
+            model.JHO.wing.W: 14.979,
             "W_Mission/Aircraft/Fuselage": 9.615}
     model.substitutions.update(subs)
     for p in model.varkeys["P_{avn}"]:
         model.substitutions.update({p: 65})
     for t in model.varkeys["\\theta_{max}"]:
         model.substitutions.update({t: 65})
-    model.substitutions.update({"w_{lim}": 1})
+    model.substitutions.update({model.JHO.wing.spar.wlim: 1})
     for vk in model.varkeys["w"]:
         model.substitutions.update({vk: 2})
 
-    del model.substitutions["m_{fac}_Mission/Aircraft/Empennage"]
-    del model.substitutions["m_{fac}_Mission/Aircraft/Wing"]
+    del model.substitutions[model.JHO.emp.mfac]
+    del model.substitutions[model.JHO.wing.mfac]
     del model.substitutions["m_{fac}_Mission/Aircraft/Fuselage"]
-    model.cost = (model.cost/model["m_{fac}_Mission/Aircraft/Empennage"]
-                  / model["m_{fac}_Mission/Aircraft/Wing"]
+    model.cost = (model.cost/model[model.JHO.emp.mfac]
+                  / model[model.JHO.wing.mfac]
                   / model["m_{fac}_Mission/Aircraft/Fuselage"])
     sol = model.localsolve("mosek", verbosity=0)
 
-    subs = {"m_{fac}_Mission/Aircraft/Wing":
-            sol("m_{fac}_Mission/Aircraft/Wing"),
-            "m_{fac}_Mission/Aircraft/Empennage":
-            sol("m_{fac}_Mission/Aircraft/Empennage"),
+    subs = {model.JHO.wing.mfac: sol(model.JHO.wing.mfac),
+            model.JHO.emp.mfac: sol(model.JHO.emp.mfac),
             "m_{fac}_Mission/Aircraft/Fuselage":
             sol("m_{fac}_Mission/Aircraft/Fuselage")}
     model.substitutions.update(subs)
 
-    del model.substitutions["W_Mission/Aircraft/Empennage"]
-    del model.substitutions["W_Mission/Aircraft/Wing"]
+    del model.substitutions[model.JHO.emp.W]
+    del model.substitutions[model.JHO.wing.W]
     del model.substitutions["W_Mission/Aircraft/Fuselage"]
 
 def perf_solve(model):
@@ -63,21 +62,21 @@ def perf_solve(model):
     wzfw = sol("W_{zfw}").magnitude
     print "Zero fuel weight [lbs] = %.2f" % wzfw
 
-    b = sol("b_Mission/Aircraft/Wing/Planform").magnitude
+    b = sol(model.JHO.wing.planform.b).magnitude
     print "Wing span [ft] = %.2f" % b
 
     lfuse = sol("l_Mission/Aircraft/Fuselage")
-    ltail = sol("l_Mission/Aircraft/Empennage/TailBoom")
+    ltail = sol(model.JHO.emp.tailboom.l)
     ljho = (lfuse + ltail).to("ft").magnitude
     print "Aicraft length [ft] = %.2f" % ljho
 
-    AR = sol("AR_Mission/Aircraft/Wing/Planform")
+    AR = sol(model.JHO.wing.planform.AR)
     print "Aspect ratio = %.2f" % AR
 
-    cmac = sol("c_{MAC}_Mission/Aircraft/Wing/Planform").magnitude
+    cmac = sol(model.JHO.wing.planform.cmac).magnitude
     print "mean aerodynamic chord [ft] = %.4f" % cmac
 
-    croot = sol("c_{root}_Mission/Aircraft/Wing/Planform").magnitude
+    croot = sol(model.JHO.wing.planform.croot).magnitude
     print "root chord [ft] = %.3f" % croot
 
     Vy = sol("V_Mission/Climb/FlightSegment/FlightState")[0]
@@ -90,8 +89,8 @@ def perf_solve(model):
         sol("V_Mission/Loiter/FlightSegment/FlightState").magnitude)
     print "design loiter speed [m/s] = %.3f" % vloiter
 
-    rho = sol("\\rho_{sl}").items()[0][1]
-    S = sol("S_Mission/Aircraft/Wing/Planform")
+    rho = sol("rhosl").items()[0][1]
+    S = sol(model.JHO.wing.planform.S)
     w55 = sol("W_{zfw}")*(sol("W_{zfw}").magnitude + 5)/sol("W_{zfw}").magnitude
 
     Vrot55 = ((2*w55/rho/S/1.39)**0.5).to("m/s")*1.5
@@ -177,7 +176,7 @@ def plot_climbrate(result):
 
 def plot_glide(result):
     LoD = np.mean(np.hstack([result(l)/result(d) for l, d in
-                             zip(result("C_L"), result("C_D"))]))
+                             zip(result("CL"), result("C_D"))]))
     h = (result("h_Mission/Climb/FlightSegment/FlightState")
          - result("h_{ref}_Mission/Climb/FlightSegment/FlightState")/10)
     R = (LoD*h).to("nmi")

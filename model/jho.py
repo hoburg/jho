@@ -25,13 +25,13 @@ class Aircraft(Model):
             self.engine = DF70()
         else:
             self.engine = Engine()
-        self.empennage = Empennage()
+        self.emp = Empennage()
         self.pylon = Pylon()
 
-        components = [self.fuselage, self.wing, self.engine, self.empennage,
+        components = [self.fuselage, self.wing, self.engine, self.emp,
                       self.pylon]
         self.smeared_loads = [self.fuselage, self.engine, self.pylon]
-        # components = [self.fuselage, self.wing, self.engine, self.empennage]
+        # components = [self.fuselage, self.wing, self.engine, self.emp]
         # self.smeared_loads = [self.fuselage, self.engine]
 
         Wzfw = Variable("W_{zfw}", "lbf", "zero fuel weight")
@@ -47,25 +47,25 @@ class Aircraft(Model):
 
         constraints = [
             Wzfw >= sum(summing_vars(components, "W")) + Wpay + Wavn,
-            self.empennage.htail["V_h"] <= (
-                self.empennage.htail["S"]
-                * self.empennage.htail["l_h"]/self.wing["S"]**2
+            self.emp.htail.Vh <= (
+                self.emp.htail["S"]
+                * self.emp.htail.lh/self.wing["S"]**2
                 * self.wing["b"]),
-            self.empennage.vtail["V_v"] == (
-                self.empennage.vtail["S"]
-                * self.empennage.vtail["l_v"]/self.wing["S"]
+            self.emp.vtail.Vv == (
+                self.emp.vtail["S"]
+                * self.emp.vtail.lv/self.wing["S"]
                 / self.wing["b"]),
-            self.wing["C_{L_{max}}"]/self.wing["m_w"] <= (
-                self.empennage.htail["C_{L_{max}}"]
-                / self.empennage.htail["m_h"]),
+            self.wing.planform.CLmax/self.wing["m_w"] <= (
+                self.emp.htail.planform.CLmax
+                / self.emp.htail.mh),
             # enforce antenna sticking on the tail
-            self.empennage.vtail["c_{root}"]*self.empennage.vtail["\\lambda"] >= (
+            self.emp.vtail.planform.croot*self.emp.vtail.planform.lam >= (
                 wantenna),
-            self.empennage.vtail["b"] >= lantenna,
+            self.emp.vtail["b"] >= lantenna,
             # enforce a cruciform with the htail infront of vertical tail
-            self.empennage.tailboom["l"] >= (
-                self.empennage.htail["l_h"]
-                + self.empennage.htail["c_{root}"]),
+            self.emp.tailboom["l"] >= (
+                self.emp.htail.lh
+                + self.emp.htail.planform.croot),
             4./6*pi*self.fuselage["k_{nose}"]*self.fuselage["R"]**3 >= Volpay,
             self.fuselage["\\mathcal{V}_{body}"] >= (
                 self.fuselage.fueltank["\\mathcal{V}"] + Volavn),
@@ -120,8 +120,8 @@ class AircraftLoading(Model):
         loading.append(aircraft.fuselage.loading(Wcent))
 
         tbstate = TailBoomState()
-        loading.append(TailBoomFlexibility(aircraft.empennage.htail,
-                                           aircraft.empennage.tailboom,
+        loading.append(TailBoomFlexibility(aircraft.emp.htail,
+                                           aircraft.emp.tailboom,
                                            aircraft.wing, tbstate))
 
         return loading
@@ -133,20 +133,19 @@ class AircraftPerf(Model):
         self.wing = static.wing.flight_model(static.wing, state)
         self.fuselage = static.fuselage.flight_model(state)
         self.engine = static.engine.flight_model(state)
-        self.htail = static.empennage.htail.flight_model(static.empennage.htail,
+        self.htail = static.emp.htail.flight_model(static.emp.htail, state)
+        self.vtail = static.emp.vtail.flight_model(static.emp.vtail, state)
+        self.tailboom = static.emp.tailboom.flight_model(static.emp.tailboom,
                                                          state)
-        self.vtail = static.empennage.vtail.flight_model(static.empennage.vtail,
-                                                         state)
-        self.tailboom = static.empennage.tailboom.flight_model(state)
         self.pylon = static.pylon.flight_model(state)
 
         self.dynamicmodels = [self.wing, self.fuselage, self.engine,
                               self.htail, self.vtail, self.tailboom, self.pylon]
         areadragmodel = [self.fuselage, self.htail, self.vtail, self.tailboom,
                          self.pylon]
-        areadragcomps = [static.fuselage, static.empennage.htail,
-                         static.empennage.vtail,
-                         static.empennage.tailboom, static.pylon]
+        areadragcomps = [static.fuselage, static.emp.htail,
+                         static.emp.vtail,
+                         static.emp.tailboom, static.pylon]
 
         Wend = Variable("W_{end}", "lbf", "vector-end weight")
         Wstart = Variable("W_{start}", "lbf", "vector-begin weight")
@@ -158,11 +157,15 @@ class AircraftPerf(Model):
         for dc, dm in zip(areadragcomps, areadragmodel):
             if "C_d" in dm.varkeys:
                 dvars.append(dm["C_d"]*dc["S"]/static.wing["S"])
-            elif "C_f" in dm.varkeys:
+            if "Cd" in dm.varkeys:
+                dvars.append(dm["Cd"]*dc["S"]/static.wing["S"])
+            if "Cf" in dm.varkeys:
+                dvars.append(dm["Cf"]*dc["S"]/static.wing["S"])
+            if "C_f" in dm.varkeys:
                 dvars.append(dm["C_f"]*dc["S"]/static.wing["S"])
 
         constraints = [CDA >= sum(dvars),
-                       CD/mfac >= CDA + self.wing["C_d"]]
+                       CD/mfac >= CDA + self.wing.Cd]
 
         return self.dynamicmodels, constraints
 
@@ -283,7 +286,7 @@ class SLFMaxSpeed(Model):
 
         constraints = [
             (perf["W_{end}"]*perf["W_{start}"])**0.5 <= (
-                0.5*state["\\rho"]*state["V_{max}"]**2*perf["C_L"]
+                0.5*state["\\rho"]*state["V_{max}"]**2*perf.wing.CL
                 * aircraft.wing["S"]),
             T >= (0.5*state["\\rho"]*state["V_{max}"]**2*perf["C_D"]
                   *aircraft.wing["S"]),
@@ -300,7 +303,7 @@ class SteadyLevelFlight(Model):
 
         constraints = [
             (perf["W_{end}"]*perf["W_{start}"])**0.5 <= (
-                0.5*state["\\rho"]*state["V"]**2*perf["C_L"]
+                0.5*state["\\rho"]*state["V"]**2*perf.wing.CL
                 * aircraft.wing["S"]),
             T >= (0.5*state["\\rho"]*state["V"]**2*perf["C_D"]
                   *aircraft.wing["S"]),
@@ -316,26 +319,26 @@ class Mission(Model):
         Wcent = Variable("W_{cent}", "lbf", "center aircraft weight")
         Wfueltot = Variable("W_{fuel-tot}", "lbf", "total aircraft fuel weight")
 
-        JHO = Aircraft(Wfueltot, df70=DF70)
-        loading = JHO.loading(Wcent)
-        wingl = JHO.wing.spar.loading(JHO.wing)
+        self.JHO = Aircraft(Wfueltot, df70=DF70)
+        loading = self.JHO.loading(Wcent)
+        wingl = self.JHO.wing.spar.loading(self.JHO.wing)
 
         LS = Variable("(W/S)", "lbf/ft**2", "wing loading",
-                      evalfn=lambda v: v[mtow]/v[JHO.wing.planform["S"]])
+                      evalfn=lambda v: v[mtow]/v[self.JHO.wing.planform["S"]])
 
-        climb1 = Climb(10, JHO, alt=np.linspace(0, 15000, 11)[1:], etap=0.508, wind=wind)
-        cruise1 = Cruise(1, JHO, etap=0.684, R=180, wind=wind)
-        loiter1 = Loiter(5, JHO, etap=0.647, wind=wind)
-        cruise2 = Cruise(1, JHO, etap=0.684, wind=wind)
+        climb1 = Climb(10, self.JHO, alt=np.linspace(0, 15000, 11)[1:], etap=0.508, wind=wind)
+        cruise1 = Cruise(1, self.JHO, etap=0.684, R=180, wind=wind)
+        loiter1 = Loiter(5, self.JHO, etap=0.647, wind=wind)
+        cruise2 = Cruise(1, self.JHO, etap=0.684, wind=wind)
         mission = [climb1, cruise1, loiter1, cruise2]
 
         constraints = [
             mtow == climb1["W_{start}"][0],
             Wfueltot >= sum(fs["W_{fuel-fs}"] for fs in mission),
-            mission[-1]["W_{end}"][-1] >= JHO["W_{zfw}"],
-            Wcent >= Wfueltot + sum(summing_vars(JHO.smeared_loads, "W")),
+            mission[-1]["W_{end}"][-1] >= self.JHO["W_{zfw}"],
+            Wcent >= Wfueltot + sum(summing_vars(self.JHO.smeared_loads, "W")),
             loiter1["P_{total}"] >= (loiter1["P_{shaft}"] + (
-                loiter1["P_{avn}"] + JHO["P_{pay}"])
+                loiter1["P_{avn}"] + self.JHO["P_{pay}"])
                                      / loiter1["\\eta_{alternator}"]),
             Wcent == wingl["W"]
             ]
@@ -345,7 +348,7 @@ class Mission(Model):
                 mission[i]["W_{end}"][-1] == fs["W_{start}"][0]
                 ])
 
-        return JHO, mission, loading, constraints, wingl
+        return self.JHO, mission, loading, constraints, wingl
 
 def test():
     "test method run by external CI"
@@ -356,7 +359,7 @@ def test():
 
 if __name__ == "__main__":
     M = Mission(DF70=True)
-    M.substitutions["V_v"] = 0.04
+    M.substitutions[M.JHO.emp.vtail.Vv] = 0.04
     M.cost = 1/M["t_Mission/Loiter"]
     sol = M.localsolve("mosek")
 
