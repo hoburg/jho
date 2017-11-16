@@ -173,7 +173,7 @@ class FlightState(Model):
     "define environment state during a portion of an aircraft mission"
     def setup(self, alt, wind, **kwargs):
 
-        rho = Variable("\\rho", "kg/m^3", "air density")
+        rho = self.rho = Variable("\\rho", "kg/m^3", "air density")
         h = Variable("h", alt, "ft", "altitude")
         href = Variable("h_{ref}", 15000, "ft", "Reference altitude")
         psl = Variable("p_{sl}", 101325, "Pa", "Pressure at sea level")
@@ -182,7 +182,7 @@ class FlightState(Model):
         temp = [(t.value - l.value*v.value).magnitude
                 for t, v, l in zip(Tsl, h, Latm)]
         Tatm = Variable("t_{atm}", temp, "K", "Air temperature")
-        mu = Variable("\\mu", "N*s/m^2", "Dynamic viscosity")
+        mu = self.mu = Variable("\\mu", "N*s/m^2", "Dynamic viscosity")
         musl = Variable("\\mu_{sl}", 1.789*10**-5, "N*s/m^2",
                         "Dynamic viscosity at sea level")
         Rspec = Variable("R_{spec}", 287.058, "J/kg/K",
@@ -193,7 +193,7 @@ class FlightState(Model):
                        (mu/musl)**0.1 == 0.991*(h/href)**(-0.00529),
                        Latm == Latm]
 
-        V = Variable("V", "m/s", "true airspeed")
+        V = self.V = Variable("V", "m/s", "true airspeed")
         mfac = Variable("m_{fac}", 1.0, "-", "wind speed margin factor")
 
         if wind:
