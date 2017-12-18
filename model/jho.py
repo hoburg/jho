@@ -55,7 +55,7 @@ class Aircraft(Model):
                 self.emp.vtail["S"]
                 * self.emp.vtail.lv/self.wing["S"]
                 / self.wing["b"]),
-            self.wing.planform.CLmax/self.wing["m_w"] <= (
+            self.wing.planform.CLmax/self.wing.mw <= (
                 self.emp.htail.planform.CLmax
                 / self.emp.htail.mh),
             # enforce antenna sticking on the tail
@@ -119,10 +119,9 @@ class AircraftLoading(Model):
         loading = []
         loading.append(aircraft.fuselage.loading(Wcent))
 
-        tbstate = TailBoomState()
         loading.append(TailBoomFlexibility(aircraft.emp.htail,
-                                           aircraft.emp.tailboom,
-                                           aircraft.wing, tbstate))
+                                           aircraft.emp.hbend,
+                                           aircraft.wing))
 
         return loading
 

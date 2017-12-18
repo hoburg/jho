@@ -12,7 +12,7 @@ def jho_subs(model):
             model.JHO.emp.vtail.lv: 7.0,
             model.JHO.emp.vtail.planform.AR: 15,
             model.JHO.wing.planform.croot: 15./12,
-            "SM_{corr}": 0.5,
+            "SMcorr": 0.5,
             model.JHO.emp.htail.planform.AR: 4,
             model.JHO.emp.tailboom.k: 0.0,
             model.JHO.emp.tailboom.d0: 1,
