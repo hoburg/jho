@@ -45,6 +45,8 @@ class Aircraft(Model):
         Volavn = Variable("\\mathcal{V}_{avn}", 0.125, "ft**3",
                           "avionics volume")
 
+        self.wing.substitutions[self.wing.planform.tau] = 0.115
+
         constraints = [
             Wzfw >= sum(summing_vars(components, "W")) + Wpay + Wavn,
             self.emp.htail.Vh <= (
