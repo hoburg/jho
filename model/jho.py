@@ -46,6 +46,8 @@ class Aircraft(Model):
                           "avionics volume")
 
         self.wing.substitutions[self.wing.planform.tau] = 0.115
+        self.emp.substitutions[self.emp.vtail.planform.tau] = 0.08
+        self.emp.substitutions[self.emp.htail.planform.tau] = 0.08
 
         constraints = [
             Wzfw >= sum(summing_vars(components, "W")) + Wpay + Wavn,
