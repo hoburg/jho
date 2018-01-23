@@ -83,8 +83,8 @@ class Aircraft(Model):
     def flight_model(self, state):
         return AircraftPerf(self, state)
 
-    def loading(self, Wcent):
-        return AircraftLoading(self, Wcent)
+    def loading(self, Wcent, state):
+        return AircraftLoading(self, Wcent, state)
 
 class Pylon(Model):
     "attachment from fuselage to pylon"
@@ -118,13 +118,16 @@ class PylonAero(Model):
 
 class AircraftLoading(Model):
     "aircraft loading model"
-    def setup(self, aircraft, Wcent):
+    def setup(self, aircraft, state, Wcent):
 
-        loading = []
+        hbend = aircraft.emp.tailboom.tailLoad(aircraft.emp.tailboom,
+                                               aircraft.emp.htail, state)
+        vbend = aircraft.emp.tailboom.tailLoad(aircraft.emp.tailboom,
+                                               aircraft.emp.vtail, state)
+        self.wingl = aircraft.wing.spar.loading(aircraft.wing, state)
+        loading = [hbend, vbend, self.wingl]
         loading.append(aircraft.fuselage.loading(Wcent))
-
-        loading.append(TailBoomFlexibility(aircraft.emp.htail,
-                                           aircraft.emp.hbend,
+        loading.append(TailBoomFlexibility(aircraft.emp.htail, hbend,
                                            aircraft.wing))
 
         return loading
@@ -190,10 +193,15 @@ class FlightState(Model):
                         "Dynamic viscosity at sea level")
         Rspec = Variable("R_{spec}", 287.058, "J/kg/K",
                          "Specific gas constant of air")
+        qne = self.qne = Variable("qne", "kg/s^2/m",
+                                  "never exceed dynamic pressure")
+        Vne = Variable("Vne", 40, "m/s", "never exceed velocity")
+        rhosl = Variable("rhosl", 1.225, "kg/m^3", "air density at sea level")
 
         # Atmospheric variation with altitude (valid from 0-7km of altitude)
         constraints = [rho == psl*Tatm**(5.257-1)/Rspec/(Tsl**5.257),
                        (mu/musl)**0.1 == 0.991*(h/href)**(-0.00529),
+                       qne == 0.5*rhosl*Vne**2,
                        Latm == Latm]
 
         V = self.V = Variable("V", "m/s", "true airspeed")
@@ -241,12 +249,12 @@ class FlightSegment(Model):
 class Loiter(Model):
     "make a loiter flight segment"
     def setup(self, N, aircraft, alt=15000, wind=False, etap=0.7):
-        fs = FlightSegment(N, aircraft, alt, wind, etap)
+        self.fs = FlightSegment(N, aircraft, alt, wind, etap)
 
         t = Variable("t", "days", "time loitering")
-        constraints = [fs.be["t"] >= t/N]
+        constraints = [self.fs.be["t"] >= t/N]
 
-        return constraints, fs
+        return constraints, self.fs
 
 class Cruise(Model):
     "make a cruise flight segment"
@@ -323,8 +331,6 @@ class Mission(Model):
         Wfueltot = Variable("W_{fuel-tot}", "lbf", "total aircraft fuel weight")
 
         self.JHO = Aircraft(Wfueltot, df70=DF70)
-        loading = self.JHO.loading(Wcent)
-        wingl = self.JHO.wing.spar.loading(self.JHO.wing)
 
         LS = Variable("(W/S)", "lbf/ft**2", "wing loading",
                       evalfn=lambda v: v[mtow]/v[self.JHO.wing.planform["S"]])
@@ -334,6 +340,7 @@ class Mission(Model):
         loiter1 = Loiter(5, self.JHO, etap=0.647, wind=wind)
         cruise2 = Cruise(1, self.JHO, etap=0.684, wind=wind)
         mission = [climb1, cruise1, loiter1, cruise2]
+        loading = self.JHO.loading(loiter1.fs.fs, Wcent)
 
         constraints = [
             mtow == climb1["W_{start}"][0],
@@ -343,7 +350,7 @@ class Mission(Model):
             loiter1["P_{total}"] >= (loiter1["P_{shaft}"] + (
                 loiter1["P_{avn}"] + self.JHO["P_{pay}"])
                                      / loiter1["\\eta_{alternator}"]),
-            Wcent == wingl["W"]
+            Wcent == loading.wingl["W"]
             ]
 
         for i, fs in enumerate(mission[1:]):
@@ -351,7 +358,7 @@ class Mission(Model):
                 mission[i]["W_{end}"][-1] == fs["W_{start}"][0]
                 ])
 
-        return self.JHO, mission, loading, constraints, wingl
+        return self.JHO, mission, loading, constraints
 
 def test():
     "test method run by external CI"
